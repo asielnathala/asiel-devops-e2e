@@ -1,4 +1,4 @@
-resource "google_compute_instance" "tf-vm-instances" {
+resource "google_compute_instance" "vm-instances" {
   for_each = var.instances
   name = each.key       #jenkins-master         jenkins-slave       sonar       nexus   
   zone = var.geczone
@@ -13,16 +13,16 @@ resource "google_compute_instance" "tf-vm-instances" {
 
     }
   }
-}
   network_interface {
     network = "default"
     access_config {
       network_tier = "PREMIUM"
     }
   }
+}
 
 # Implement data sources , 
 data "google_compute_image" "ubuntu_image" {
-  family  = "ubuntu-2510-lts"
+  family  = "ubuntu-2204-lts"
   project = "ubuntu-os-cloud"
 }
