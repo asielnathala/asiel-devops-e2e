@@ -19,6 +19,29 @@ resource "google_compute_instance" "vm-instances" {
       network_tier = "PREMIUM"
     }
   }
+
+  connection {
+    type        = "ssh"
+    user        = "asielnathala"
+    host        = self.network_interface[0].access_config[0].nat_ip
+    private_key = file("ssh-key")
+  }
+
+  provisioner "file" {
+    source      = each.key == "ansible" ? "ansible.sh" : "empty.sh"
+    destination = each.key == "ansible" ? "/home/asielnathala/ansible.sh" : "/home/asielnathala/empty.sh"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      each.key == "ansible" ? "chmod +x /home/asielnathala/ansible.sh && sh /home/asielnathala/ansible.sh" : "echo skip the command"
+    ]
+  }
+
+  provisioner "file" {
+    source      = "ssh-key"
+    destination = "/home/asielnathala/ssh-key"
+  }
 }
 
 # Implement data sources , 

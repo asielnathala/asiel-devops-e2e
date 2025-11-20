@@ -1,0 +1,65 @@
+- hosts: jenkins-master
+  become: true
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+    - name: Install Java and curl
+      apt:
+        name: 
+          - openjdk-11-jre
+          - curl
+          - wget
+        state: present 
+    - name: Download Jenkins .deb file using curl
+      shell: |
+        curl -fsSL -o /tmp/jenkins.deb https://get.jenkins.io/debian-stable/jenkins_2.414.3_all.deb
+        echo "Exit code: $?"
+      register: download_result
+      ignore_errors: yes
+    - name: Check if download was successful
+      stat:
+        path: /tmp/jenkins.deb
+      register: deb_file
+    - name: Show download status
+      debug:
+        msg: "Jenkins .deb exists: {{ deb_file.stat.exists }}, Size: {{ deb_file.stat.size | default('N/A') }} bytes, Curl result: {{ download_result.stdout }}"
+    - name: Install Jenkins from .deb and fix dependencies
+      shell: apt install -f -y /tmp/jenkins.deb
+      when: deb_file.stat.exists
+      register: jenkins_install
+      ignore_errors: yes
+    - name: Show Jenkins install output
+      debug:
+        msg: "{{ jenkins_install.stdout | default('Install skipped or no output') }}"
+    - name: Wait a bit for Jenkins service to register
+      pause:
+        seconds: 5
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+    - name: Start Jenkins service
+      systemd:
+        name: jenkins
+        state: started
+        enabled: true
+      register: jenkins_start
+      ignore_errors: yes
+    - name: Show Jenkins start status
+      debug:
+        msg: "Jenkins start result: {{ jenkins_start }}"
+    - name: Wait for Jenkins to start and create password file
+      wait_for:
+        path: /var/lib/jenkins/secrets/initialAdminPassword
+        delay: 10
+        timeout: 300
+      ignore_errors: yes
+    - name: Read Jenkins Initial Admin Password
+      command: cat /var/lib/jenkins/secrets/initialAdminPassword
+      register: intial_admin_password
+      ignore_errors: yes
+    - name: Display the Initial Admin Password 
+      debug:
+        msg: "Jenkins Initial Admin Password: {{ intial_admin_password.stdout | default('Password file not yet available') }}"
+     
+
