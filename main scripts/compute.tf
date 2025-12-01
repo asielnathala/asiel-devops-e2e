@@ -20,7 +20,7 @@ resource "google_compute_instance" "vm-instances" {
     }
   }
 
-  connection {
+  connection{
     type        = "ssh"
     user        = "asielnathala"
     host        = self.network_interface[0].access_config[0].nat_ip
@@ -46,6 +46,7 @@ resource "google_compute_instance" "vm-instances" {
 
 # Implement data sources , 
 data "google_compute_image" "ubuntu_image" {
-  family  = "ubuntu-minimal-2204-lts"
+  family  = "ubuntu-2204-lts"
   project = "ubuntu-os-cloud"
 }
+

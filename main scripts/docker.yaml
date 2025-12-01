@@ -1,0 +1,78 @@
+---
+- hosts: docker-vm
+  become: true
+  tasks:
+    - name: Update dnf package cache
+      ansible.builtin.dnf:
+        update_cache: yes
+
+    - name: Install required dependencies for Docker repository
+      ansible.builtin.dnf:
+        name:
+          - dnf-utils
+          - device-mapper-persistent-data
+          - lvm2
+        state: present
+
+    - name: Download Docker repository file
+      ansible.builtin.command:
+        cmd: curl -fsSL https://download.docker.com/linux/centos/docker-ce.repo -o /etc/yum.repos.d/docker-ce.repo
+
+    - name: Install Docker (docker-ce)
+      ansible.builtin.dnf:
+        name: docker-ce
+        state: present
+
+    - name: Start Docker service
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add user 'ubuntu' to the docker group
+      ansible.builtin.user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Set permissions on /var/run/docker.sock
+      ansible.builtin.file:
+        path: /var/run/docker.sock
+        mode: '0777'
+
+    - name: Create user 'maha'
+      ansible.builtin.user:
+        name: maha
+        createhome: yes
+        shell: /bin/bash
+        system: no  # Set to 'no' to create a regular user
+        state: present
+
+    - name: Set the password for user 'maha'
+      ansible.builtin.user:
+        name: maha
+        password: "{{ '12345' | password_hash('sha512') }}"
+
+    - name: Enable password authentication in SSH
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication yes'
+        backup: yes
+
+    - name: Restart SSH service
+      ansible.builtin.service:
+        name: sshd
+        state: restarted
+
+    - name: Add 'maha' to the sudoers file
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        insertafter: EOF
+        line: 'maha ALL=(ALL:ALL) ALL'
+        validate: 'visudo -cf %s'
+    - name: Install sshpass for docker server
+      ansible.builtin.dnf:
+        name: sshpass
+        state: present
+    

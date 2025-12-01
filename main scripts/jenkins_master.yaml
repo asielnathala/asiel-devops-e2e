@@ -1,0 +1,39 @@
+---
+- hosts: [jenkins-master]
+  become: true
+  tasks: 
+  - name: ADD jenkins Key
+    ansible.builtin.apt_key: 
+      url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+      state: present
+
+  - name: ADD jenkins Repo
+    ansible.builtin.apt_repository: 
+      repo: 'deb https://pkg.jenkins.io/debian-stable/ binary/'
+      state: present 
+
+  - name: Install JAVA (OpenJDK 17)
+    apt:
+      name: openjdk-17-jdk  # This installs Java Runtime Environment; if Jenkins requires JDK, use openjdk-17-jdk
+      state: present
+
+  - name: Install Jenkins
+    apt:
+      name: jenkins
+      state: present
+
+  - name: Start Jenkins
+    service:
+      name: jenkins
+      state: started
+
+  - name: Enable Jenkins to start on boot
+    service: 
+      name: jenkins
+      enabled: yes
+  - name: Cat the InitialAdminPassword of jenkins
+    ansible.builtin.shell: cat /var/lib/jenkins/secrets/initialAdminPassword
+    register: initial_admin_password
+  - name: Display the content in initialAdminPassword
+    debug: 
+     var: initial_admin_password.stdout_lines 
